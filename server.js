@@ -161,6 +161,10 @@ function mapCardForClient(card, revealAll = false) {
     base.profession = card.profession;
     base.professionLevel = card.professionLevel;
   }
+  if (card.type === "health" && card.condition) {
+    base.condition = card.condition;
+    base.conditionLevel = card.conditionLevel;
+  }
   return base;
 }
 
@@ -280,6 +284,12 @@ function sanitizePlayerForHost(id, p) {
   };
 }
 
+function sanitizeScenarioForPlayer(data) {
+  if (!data) return null;
+  const { text, ...rest } = data;
+  return rest;
+}
+
 function buildRoundInfo() {
   const quota = roundQuota();
   return {
@@ -353,9 +363,9 @@ function buildPlayerState(socketId) {
     role: "player",
     phase: game.phase,
     backstory: ["playing", "voting", "ended"].includes(game.phase)
-      ? game.activeBackstory
+      ? sanitizeScenarioForPlayer(game.activeBackstory)
       : null,
-    scenario: game.phase === "lobby" ? getScenarioPreview(game.settings) : null,
+    scenario: game.phase === "lobby" ? sanitizeScenarioForPlayer(getScenarioPreview(game.settings)) : null,
     bunkerSpots: bunkerSpots(),
     survivorsCount: activeCount(),
     round:
@@ -552,8 +562,9 @@ io.on("connection", (socket) => {
     game.activeBackstory = buildActiveBackstory(game.settings, n);
     game.round = 1;
 
+    const scenarioId = game.activeBackstory.id;
     for (const id of playerIds()) {
-      game.players[id].cards = dealPlayerCards();
+      game.players[id].cards = dealPlayerCards(scenarioId);
       game.players[id].excluded = false;
     }
     initRevealsThisRound();

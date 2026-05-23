@@ -43,6 +43,9 @@ function formatCardValue(c) {
   if (c.type === "profession" && c.professionLevel) {
     return `${c.profession || c.value} — ${c.professionLevel}`;
   }
+  if (c.type === "health" && c.condition) {
+    return `${c.condition} — ${c.conditionLevel}`;
+  }
   return c.value;
 }
 
@@ -62,7 +65,7 @@ function showJoinError(msg) {
 
 function updatePlayerScenarioTheme(data, showSpots = false) {
   applyScenarioBackground(data);
-  renderScenarioHero(scenarioHero, data, { showSpots });
+  renderScenarioHero(scenarioHero, data, { showSpots, hideText: true });
 }
 
 function clearPlayerScenarioTheme() {
@@ -159,7 +162,9 @@ function renderCards(cards, isYourTurn, round, phase, excluded) {
       const levelLine =
         c.type === "profession" && c.professionLevel
           ? `<span class="game-card__level">Уровень: ${escapeHtml(c.professionLevel)}</span>`
-          : "";
+          : c.type === "health" && c.conditionLevel
+            ? `<span class="game-card__level">Степень: ${escapeHtml(c.conditionLevel)}</span>`
+            : "";
 
       return `
         <div class="game-card game-card--private ${onTable ? "game-card--on-table" : ""} ${revealAll && !onTable ? "game-card--revealed-end" : ""}">
@@ -239,7 +244,7 @@ function applyState(state) {
     playerBadge.textContent = "Зал ожидания";
     playerTagline.textContent = state.scenario?.isRandom
       ? "Сценарий откроется при старте игры."
-      : "Ознакомьтесь с катастрофой — скоро начнётся отбор.";
+      : "Дождитесь старта — детали катастрофы объявит ведущий.";
     waitingName.textContent = state.you.name;
     waitingCount.textContent = `Подключено игроков: ${state.playerCount}`;
     lobbyList.innerHTML = state.players
