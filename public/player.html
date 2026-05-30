@@ -4,12 +4,16 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Бункер — Игрок</title>
-  <link rel="stylesheet" href="style.css">
+  <script>
+    (function(){var p=location.pathname.replace(/\\/g,"/");var r=/^\/user\/[^/]+\/?$/i.test(p)||/^\/(?:account|auth|news|friends|host|player|profile|game\/[^/]+)\/?$/i.test(p);if(r&&!document.querySelector("base[data-bunker-root]")){var b=document.createElement("base");b.href="/";b.setAttribute("data-bunker-root","1");document.head.appendChild(b);}})();
+  </script>
+  <link rel="stylesheet" href="/style.css">
 </head>
 <body class="player">
   <div id="scenarioBg" class="scenario-bg" aria-hidden="true"></div>
-  <div class="page">
-    <a href="index.html" class="back-link">← Выйти из убежища</a>
+  <div class="page page--with-topbar">
+    <div data-site-topbar class="site-topbar"></div>
+    <a href="/" class="back-link">← Выйти из убежища</a>
 
     <header class="site-header">
       <div class="site-header__badge" id="playerBadge">Личный терминал</div>
@@ -32,10 +36,23 @@
     </section>
 
     <section id="joinSection" class="panel hidden">
-      <p class="panel__title">Регистрация у ворот</p>
+      <p class="panel__title">Вход в сессию</p>
       <p class="panel__subtitle">Сессия: <strong id="joinedSessionCode">—</strong></p>
-      <form class="join-form" id="joinForm">
-        <input type="text" id="playerName" placeholder="Имя или позывной" maxlength="24" required autocomplete="nickname">
+      <form class="join-form join-form--stacked" id="joinForm">
+        <div id="guestJoinFields">
+          <label class="field">
+            <span class="field__label">Имя в сессии</span>
+            <input type="text" id="playerName" placeholder="Имя или позывной" maxlength="24" required autocomplete="nickname">
+          </label>
+          <p class="field__hint">Гостевой вход — только имя, без профиля.</p>
+        </div>
+        <div id="memberJoinFields" class="hidden">
+          <label class="field">
+            <span class="field__label">Позывной в сессии</span>
+            <input type="text" id="memberCallsign" placeholder="Оставьте пустым — будет ваш никнейм" maxlength="24" autocomplete="nickname">
+            <span class="field__hint">Необязательно. Пустое поле — отображается никнейм аккаунта.</span>
+          </label>
+        </div>
         <button type="submit" class="btn btn--amber">Войти в зал ожидания</button>
       </form>
       <p id="joinError" class="form-error hidden"></p>
@@ -46,8 +63,15 @@
         <p class="waiting-modal__badge">Зал ожидания</p>
         <h2 class="waiting-modal__title" id="waitingTitle">Ожидаем начала игры</h2>
         <p class="waiting-modal__text" id="waitingCount">Подключено игроков: 0</p>
-        <p class="waiting-modal__name">Вы: <strong id="waitingName">—</strong></p>
+        <div class="waiting-modal__you">
+          <img id="waitingAvatar" class="player-chip__avatar" src="/icons/guest-avatar.svg" alt="">
+          <p class="waiting-modal__name">Вы: <strong id="waitingName">—</strong> <span id="waitingBadge" class="player-badge player-badge--guest">Гость</span></p>
+        </div>
         <ul id="lobbyList" class="lobby-list waiting-modal__list"></ul>
+        <div id="lobbyInviteSection" class="lobby-invite hidden">
+          <p class="lobby-invite__title">Пригласить друзей</p>
+          <ul id="lobbyInviteList" class="lobby-invite__list"></ul>
+        </div>
         <button type="button" id="leaveSessionBtn" class="btn btn--danger">Выйти из сессии</button>
       </div>
     </div>
@@ -79,21 +103,32 @@
     <footer class="authors-footer">
       <div class="authors-footer__logos">
         <a href="https://vk.com/im_san" class="authors-footer__link" target="_blank" rel="noopener noreferrer">
-          <img src="icons/author1.png" alt="Автор в VK" class="authors-footer__logo">
+          <img src="/icons/author1.png" alt="Автор в VK" class="authors-footer__logo">
         </a>
         <a href="https://vk.com/ewlov3" class="authors-footer__link" target="_blank" rel="noopener noreferrer">
-          <img src="icons/author2.png" alt="Автор в VK" class="authors-footer__logo">
+          <img src="/icons/author2.png" alt="Автор в VK" class="authors-footer__logo">
         </a>
       </div>
       <a id="donateBtn" class="authors-footer__donate btn btn--amber" href="#">Поддержать проект</a>
     </footer>
   </div>
 
-  <script src="config.js"></script>
-  <script src="donate.js"></script>
-  <script src="bunker-runtime.js"></script>
+  <script src="/config.js"></script>
+  <script src="/donate.js"></script>
   <script src="https://cdn.socket.io/4.8.1/socket.io.min.js" crossorigin="anonymous"></script>
-  <script src="scenario-theme.js"></script>
-  <script src="player.js"></script>
+  <script src="/auth.js"></script>
+  <script src="/user-badges.js"></script>
+  <script src="/social-client.js"></script>
+  <script src="/notifications.js"></script>
+  <script src="/premium-modal.js"></script>
+  <script src="/site-auth.js"></script>
+  <script src="/dev-panel.js"></script>
+  <script src="/chat-attachments.js"></script>
+  <script src="/chat-widget.js"></script>
+  <script src="/profile-modal.js"></script>
+  <script src="/bunker-runtime.js"></script>
+  <script src="/scenario-theme.js"></script>
+  <script src="/player-auth-ui.js"></script>
+  <script src="/player.js"></script>
 </body>
 </html>

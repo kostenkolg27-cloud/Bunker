@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Бункер — Друзья</title>
+  <script>
+    (function(){var p=location.pathname.replace(/\\/g,"/");var r=/^\/user\/[^/]+\/?$/i.test(p)||/^\/(?:account|auth|news|friends|host|player|profile|game\/[^/]+)\/?$/i.test(p);if(r&&!document.querySelector("base[data-bunker-root]")){var b=document.createElement("base");b.href="/";b.setAttribute("data-bunker-root","1");document.head.appendChild(b);}})();
+  </script>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body class="friends">
+  <div class="page page--with-topbar">
+    <div data-site-topbar class="site-topbar"></div>
+    <a href="/" class="back-link">← На главную</a>
+
+    <header class="site-header">
+      <div class="site-header__badge">Связь выживших</div>
+      <h1>Друзья</h1>
+      <p class="site-header__tagline">Добавляйте игроков и переписывайтесь</p>
+    </header>
+
+    <section class="panel friends-add">
+      <p class="panel__title">Найти и добавить друга</p>
+      <form id="addFriendForm" class="friends-add__form">
+        <div class="friends-add__field">
+          <input type="search" id="addFriendNick" maxlength="20" placeholder="Начните вводить никнейм…" autocomplete="off">
+          <ul id="addFriendSuggest" class="friends-suggest hidden" role="listbox"></ul>
+        </div>
+        <button type="submit" class="btn btn--amber">Добавить выбранного</button>
+      </form>
+      <p id="addFriendError" class="form-error hidden"></p>
+      <p id="addFriendSuccess" class="form-success hidden"></p>
+    </section>
+
+    <section id="incomingSection" class="panel hidden">
+      <p class="panel__title">Входящие заявки</p>
+      <ul id="incomingList" class="friends-list"></ul>
+    </section>
+
+    <div class="friends-layout">
+      <section class="panel friends-list-panel">
+        <p class="panel__title">Список друзей</p>
+        <ul id="friendsList" class="friends-list">
+          <li class="friends-list__empty">Загрузка…</li>
+        </ul>
+      </section>
+
+      <section class="panel friends-chat-panel">
+        <p class="panel__title" id="chatTitle">Чат</p>
+        <p class="panel__subtitle" id="chatSubtitle">Выберите друга слева. Сообщения хранятся 48 часов.</p>
+        <div id="chatMessages" class="friends-chat__messages"></div>
+        <form id="chatForm" class="friends-chat__form hidden">
+          <button type="button" class="friends-chat__tool" data-friends-toggle-emoji title="Эмодзи" aria-label="Эмодзи">😊</button>
+          <button type="button" class="friends-chat__tool" data-friends-toggle-stickers title="Стикеры" aria-label="Стикеры">🖼️</button>
+          <input type="text" id="chatInput" maxlength="2000" placeholder="Сообщение…" autocomplete="off">
+          <button type="submit" class="btn btn--amber">Отправить</button>
+        </form>
+        <div class="friends-chat__picker friends-chat__picker--emoji hidden" id="friendsEmojiPanel"></div>
+        <div class="friends-chat__picker friends-chat__picker--stickers hidden" id="friendsStickerPanel"></div>
+        <p id="chatError" class="form-error hidden"></p>
+      </section>
+    </div>
+  </div>
+
+  <div id="inviteToast" class="invite-toast hidden" role="alert"></div>
+
+  <script src="/config.js"></script>
+  <script src="/bunker-runtime.js"></script>
+  <script src="https://cdn.socket.io/4.8.1/socket.io.min.js" crossorigin="anonymous"></script>
+  <script src="/auth.js"></script>
+  <script src="/user-badges.js"></script>
+  <script src="/social-client.js"></script>
+  <script src="/chat-attachments.js"></script>
+  <script src="/notifications.js"></script>
+  <script src="/premium-modal.js"></script>
+  <script src="/site-auth.js"></script>
+  <script src="/dev-panel.js"></script>
+  <script src="/scenario-editor.js"></script>
+  <script src="/chat-widget.js"></script>
+  <script src="/friends.js"></script>
+</body>
+</html>

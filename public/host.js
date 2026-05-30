@@ -1,5 +1,24 @@
 const socket = BunkerRuntime.connectSocket();
 
+function playerAvatarUrl(url) {
+  if (!url) return BunkerRuntime.assetUrl("icons/guest-avatar.svg");
+  if (url.startsWith("/uploads/") || url.startsWith("/api/avatars/")) {
+    const base = (window.BUNKER_CONFIG?.apiUrl || window.BUNKER_CONFIG?.wsUrl || "").replace(
+      /\/$/,
+      ""
+    );
+    return base ? `${base}${url}` : BunkerRuntime.assetUrl(url.replace(/^\//, ""));
+  }
+  return BunkerRuntime.assetUrl(url.replace(/^\//, ""));
+}
+
+function playerNameHtml(p) {
+  const guestBadge = p.isGuest
+    ? ' <span class="player-badge player-badge--guest">Гость</span>'
+    : "";
+  return `${escapeHtml(p.name)}${guestBadge}`;
+}
+
 function formatBunkerHint(scenario, spots) {
   if (!scenario) return `Мест в бункере: ${spots}`;
   const loc = scenario.locationLabel || "В бункере";
@@ -49,6 +68,9 @@ let suppressSettingsEmit = false;
 let selectedBackstoryId = "nuclear";
 let backstoryRandom = false;
 const backstoriesById = {};
+let hostAccess = { premium: false, dev: false };
+let savedCustomBackstory = null;
+const CUSTOM_BACKSTORY_ID = BunkerScenarioEditor.CUSTOM_ID;
 
 function emitHostJoin(extra = {}) {
   socket.emit("hostJoin", {
@@ -121,18 +143,26 @@ function formatCardValue(c) {
 }
 
 function currentSettingsPayload() {
-  return {
+  const payload = {
     backstoryId: selectedBackstoryId,
     backstoryRandom,
+    authToken: BunkerAuth.getToken() || undefined,
   };
+  if (selectedBackstoryId === CUSTOM_BACKSTORY_ID && savedCustomBackstory) {
+    payload.customBackstory = savedCustomBackstory;
+  }
+  return payload;
 }
 
 function syncScenarioSelection() {
   scenarioGrid.querySelectorAll(".scenario-card").forEach((card) => {
     const isRandom = card.dataset.random === "true";
+    const cardId = card.dataset.id;
     const selected = isRandom
       ? backstoryRandom
-      : !backstoryRandom && card.dataset.id === selectedBackstoryId;
+      : !backstoryRandom &&
+        (cardId === selectedBackstoryId ||
+          (cardId === CUSTOM_BACKSTORY_ID && selectedBackstoryId === CUSTOM_BACKSTORY_ID));
     card.classList.toggle("scenario-card--selected", selected);
     card.setAttribute("aria-selected", selected ? "true" : "false");
   });
@@ -146,6 +176,23 @@ function getLocalScenarioPreview() {
       text: "Катастрофа будет выбрана при старте. Описание увидите здесь после выбора.",
     };
   }
+  if (selectedBackstoryId === CUSTOM_BACKSTORY_ID) {
+    if (savedCustomBackstory) {
+      return enrichScenarioFromCatalog({
+        id: CUSTOM_BACKSTORY_ID,
+        ...savedCustomBackstory,
+        bunkerParamsPending: true,
+        bunkerParamsNote: "Параметры бункера определятся при старте игры.",
+      });
+    }
+    return {
+      isRandom: false,
+      id: CUSTOM_BACKSTORY_ID,
+      title: "Своя катастрофа",
+      text: "Откройте редактор и заполните описание катастрофы.",
+      bunkerParamsPending: true,
+    };
+  }
   const story = backstoriesById[selectedBackstoryId];
   return story ? enrichScenarioFromCatalog(story) : null;
 }
@@ -155,12 +202,38 @@ function updateHostScenarioTheme(data, showSpots = false) {
   renderScenarioHero(scenarioHero, data, { showSpots });
 }
 
-function selectScenario(id, random) {
+function canUseCustomScenario() {
+  return hostAccess.premium || hostAccess.dev;
+}
+
+async function selectScenario(id, random) {
+  if (!random && id === CUSTOM_BACKSTORY_ID) {
+    if (!canUseCustomScenario()) {
+      BunkerPremium?.open?.();
+      return;
+    }
+    if (!savedCustomBackstory) {
+      BunkerScenarioEditor.openCustomScenarioEditor(null, (custom) => {
+        savedCustomBackstory = custom;
+        selectedBackstoryId = CUSTOM_BACKSTORY_ID;
+        backstoryRandom = false;
+        syncScenarioSelection();
+        updateHostScenarioTheme(getLocalScenarioPreview());
+        emitSettings();
+      });
+      return;
+    }
+  }
   backstoryRandom = random;
   if (!random) selectedBackstoryId = id;
   syncScenarioSelection();
   updateHostScenarioTheme(getLocalScenarioPreview());
   emitSettings();
+}
+
+function rebuildScenarioGrid() {
+  const stories = Object.values(backstoriesById);
+  if (stories.length) buildScenarioGrid(stories);
 }
 
 function buildScenarioGrid(backstories) {
@@ -182,16 +255,51 @@ function buildScenarioGrid(backstories) {
       <span class="scenario-card__label">Случайный</span>
     </button>`;
 
-  scenarioGrid.innerHTML = cards + randomCard;
+  const customCard = BunkerScenarioEditor.customScenarioCardHtml(canUseCustomScenario());
+  const devTools = hostAccess.dev
+    ? `<div class="host-dev-tools">
+        <button type="button" class="btn btn--small" data-dev-edit-scenarios>Редактировать сценарии</button>
+        <button type="button" class="btn btn--small" data-dev-edit-pools>Паки характеристик</button>
+      </div>`
+    : "";
+
+  scenarioGrid.innerHTML = cards + customCard + randomCard + devTools;
 
   scenarioGrid.querySelectorAll(".scenario-card").forEach((card) => {
     card.addEventListener("click", () => {
+      if (card.classList.contains("scenario-card--locked")) {
+        BunkerPremium?.open?.();
+        return;
+      }
       if (card.dataset.random === "true") {
         selectScenario(null, true);
       } else {
         selectScenario(card.dataset.id, false);
       }
     });
+    if (
+      card.dataset.id === CUSTOM_BACKSTORY_ID &&
+      canUseCustomScenario() &&
+      !card.classList.contains("scenario-card--locked")
+    ) {
+      card.addEventListener("contextmenu", (e) => {
+        e.preventDefault();
+        BunkerScenarioEditor.openCustomScenarioEditor(savedCustomBackstory, (custom) => {
+          savedCustomBackstory = custom;
+          if (selectedBackstoryId === CUSTOM_BACKSTORY_ID) {
+            updateHostScenarioTheme(getLocalScenarioPreview());
+            emitSettings();
+          }
+        });
+      });
+    }
+  });
+
+  scenarioGrid.querySelector("[data-dev-edit-scenarios]")?.addEventListener("click", () => {
+    BunkerScenarioEditor.openDevScenariosEditor();
+  });
+  scenarioGrid.querySelector("[data-dev-edit-pools]")?.addEventListener("click", () => {
+    BunkerScenarioEditor.openDevCardPoolsEditor();
   });
 }
 
@@ -205,8 +313,8 @@ function fillCatalog(catalog, settings) {
     catalog.backstories.forEach((b) => {
       backstoriesById[b.id] = b;
     });
-    buildScenarioGrid(catalog.backstories);
     catalogReady = true;
+    rebuildScenarioGrid();
 
     createSessionBtn.addEventListener("click", () => {
       socket.emit("createSession", currentSettingsPayload());
@@ -221,6 +329,7 @@ function fillCatalog(catalog, settings) {
   suppressSettingsEmit = true;
   selectedBackstoryId = settings.backstoryId;
   backstoryRandom = settings.backstoryRandom;
+  if (settings.customBackstory) savedCustomBackstory = settings.customBackstory;
   syncScenarioSelection();
   updateHostScenarioTheme(getLocalScenarioPreview());
   suppressSettingsEmit = false;
@@ -247,7 +356,8 @@ function renderLobbyRoster(players) {
     .map(
       (p) => `
     <article class="lobby-row">
-      <span class="lobby-row__name">${escapeHtml(p.name)}</span>
+      <img class="player-chip__avatar" src="${playerAvatarUrl(p.avatarUrl)}" alt="">
+      <span class="lobby-row__name">${playerNameHtml(p)}</span>
       <button type="button" class="btn btn--danger btn--small" data-kick="${p.id}">Исключить</button>
     </article>
   `
@@ -289,8 +399,9 @@ function renderGameRoster(players, currentTurn, round, phase) {
       return `
         <article class="player-row ${isTurn ? "player-row--turn" : ""} ${p.excluded ? "player-row--excluded" : ""}" data-player-id="${p.id}">
           <div class="player-row__header">
+            <img class="player-chip__avatar player-row__avatar" src="${playerAvatarUrl(p.avatarUrl)}" alt="">
             <h2 class="player-row__name">
-              ${escapeHtml(p.name)}
+              ${playerNameHtml(p)}
               ${excludedTag}
               ${isTurn ? '<span class="turn-chip">ход</span>' : ""}
             </h2>
@@ -412,3 +523,21 @@ socket.on("gameState", (state) => {
 socket.on("hostError", (msg) => {
   alert(msg || "Не удалось подключиться как ведущий.");
 });
+
+(async function loadHostAccess() {
+  if (!BunkerAuth.apiBase() || !BunkerAuth.getToken()) return;
+  try {
+    const { user } = await BunkerAuth.fetchMe();
+    hostAccess = { premium: !!user?.premium, dev: !!user?.dev };
+    if (hostAccess.premium || hostAccess.dev) {
+      const data = await BunkerAuth.getCustomScenario();
+      savedCustomBackstory = data.customBackstory || null;
+    }
+    if (catalogReady) {
+      rebuildScenarioGrid();
+      syncScenarioSelection();
+    }
+  } catch {
+    /* гость или офлайн API */
+  }
+})();

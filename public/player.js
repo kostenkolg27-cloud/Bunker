@@ -32,6 +32,7 @@ const roundInfoEl = document.getElementById("roundInfo");
 
 let joined = false;
 let validatedCode = null;
+let manualCodeFlow = false;
 
 function escapeHtml(str) {
   const el = document.createElement("div");
@@ -51,6 +52,29 @@ function formatCardValue(c) {
 
 function normalizeCodeInput(value) {
   return (value || "").trim().toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6);
+}
+
+function isPlayerEntryPath(pathname) {
+  const path = (pathname || location.pathname).replace(/\\/g, "/");
+  return path === "/player" || path === "/player.html";
+}
+
+function getCodeFromUrl() {
+  const params = new URLSearchParams(location.search);
+  let code = normalizeCodeInput(params.get("code"));
+  if (code.length === 6) return code;
+  const match = location.pathname.match(/\/game\/([^/?#]+)\/?$/i);
+  if (match) code = normalizeCodeInput(decodeURIComponent(match[1]));
+  return code.length === 6 ? code : "";
+}
+
+function redirectToGameUrl(code) {
+  const normalized = normalizeCodeInput(code);
+  if (normalized.length !== 6) return;
+  const targetPath = `/game/${encodeURIComponent(normalized)}`;
+  const currentPath = location.pathname.replace(/\\/g, "/");
+  if (currentPath.toUpperCase() === targetPath.toUpperCase()) return;
+  location.replace(BunkerRuntime.playerJoinUrl(normalized));
 }
 
 function showCodeError(msg) {
@@ -82,6 +106,11 @@ function showNameForm(code) {
 }
 
 function requestCodeValidation(code) {
+  manualCodeFlow = true;
+  const saved = BunkerRuntime.getPlayerSession();
+  if (saved.code && saved.code !== code) {
+    BunkerRuntime.clearPlayerSession();
+  }
   showCodeError("");
   socket.emit("validateSessionCode", code);
 }
@@ -102,10 +131,23 @@ sessionCodeInput.addEventListener("input", () => {
 
 joinForm.addEventListener("submit", (e) => {
   e.preventDefault();
-  const name = playerNameInput.value.trim();
-  if (!name || !validatedCode) return;
+  if (!validatedCode) return;
   showJoinError("");
-  socket.emit("playerJoin", { name, code: validatedCode });
+  const payload = window.BunkerPlayerAuth
+    ? BunkerPlayerAuth.buildJoinPayload(validatedCode)
+    : { name: playerNameInput.value.trim(), code: validatedCode };
+
+  if (!window.BunkerAuth?.isLoggedIn()) {
+    if (!payload.name?.trim()) {
+      showJoinError("Введите имя.");
+      return;
+    }
+  } else if (payload.nameMode === "session" && !payload.name?.trim()) {
+    showJoinError("Введите имя для этой сессии.");
+    return;
+  }
+
+  socket.emit("playerJoin", payload);
 });
 
 leaveSessionBtn.addEventListener("click", () => {
@@ -240,6 +282,15 @@ function renderVoting(voting) {
 function applyState(state) {
   if (!state.you) return;
 
+  if (
+    state.sessionCode &&
+    ["playing", "voting", "ended"].includes(state.phase) &&
+    isPlayerEntryPath()
+  ) {
+    redirectToGameUrl(state.sessionCode);
+    return;
+  }
+
   if (state.sessionCode && state.you.id) {
     BunkerRuntime.savePlayerSession({
       playerId: state.you.id,
@@ -284,14 +335,23 @@ function applyState(state) {
       ? "Сценарий откроется при старте игры."
       : "Дождитесь старта — детали катастрофы объявит ведущий.";
     waitingName.textContent = state.you.name;
+    if (window.BunkerPlayerAuth) BunkerPlayerAuth.updateWaitingYou(state.you);
     waitingCount.textContent = `Подключено игроков: ${state.playerCount}`;
     lobbyList.innerHTML = state.players
-      .map((p) => {
-        const tag = p.excluded ? " <span class='status-badge status-badge--excluded-inline'>ИСКЛЮЧЕН</span>" : "";
-        const you = p.id === state.you.id ? " <em>(вы)</em>" : "";
-        return `<li>${escapeHtml(p.name)}${you}${tag}</li>`;
-      })
+      .map((p) =>
+        window.BunkerPlayerAuth
+          ? BunkerPlayerAuth.renderPlayerChip(p, {
+              you: p.id === state.you.id,
+              excluded: p.excluded,
+            })
+          : `<li>${escapeHtml(p.name)}</li>`
+      )
       .join("");
+    if (window.BunkerPlayerAuth?.setLobbyOccupants) {
+      BunkerPlayerAuth.setLobbyOccupants(
+        state.players.map((p) => p.userId).filter(Boolean)
+      );
+    }
     return;
   }
 
@@ -351,6 +411,7 @@ function applyState(state) {
 socket.on("gameState", applyState);
 
 function tryReconnect() {
+  if (manualCodeFlow) return false;
   const saved = BunkerRuntime.getPlayerSession();
   if (saved.playerId && saved.code) {
     socket.emit("playerReconnect", {
@@ -366,10 +427,23 @@ socket.on("connect", () => {
   if (!joined) tryReconnect();
 });
 
-const urlCode = normalizeCodeInput(new URLSearchParams(location.search).get("code"));
-if (urlCode.length === 6) {
+const urlCode = getCodeFromUrl();
+const savedSession = BunkerRuntime.getPlayerSession();
+if (urlCode) {
   sessionCodeInput.value = urlCode;
-  requestCodeValidation(urlCode);
-} else if (!BunkerRuntime.getPlayerSession().playerId) {
+  if (savedSession.playerId && savedSession.code === urlCode) {
+    manualCodeFlow = false;
+  } else {
+    manualCodeFlow = true;
+    if (savedSession.code && savedSession.code !== urlCode) {
+      BunkerRuntime.clearPlayerSession();
+    }
+    requestCodeValidation(urlCode);
+  }
+} else if (!savedSession.playerId) {
   sessionCodeInput.focus();
+}
+
+if (window.BunkerPlayerAuth) {
+  BunkerPlayerAuth.initAccount();
 }
