@@ -175,6 +175,26 @@ async function syncAchievementsForUser(userId) {
   return newlyUnlocked;
 }
 
+function newlyUnlockedPublic(ids) {
+  return ids
+    .filter((id) => ACHIEVEMENTS[id])
+    .map((id) => {
+      const ach = ACHIEVEMENTS[id];
+      return {
+        id,
+        type: ach.type,
+        tier: ach.tier || null,
+        name: ach.name,
+        iconUrl: achievementIconPath(id),
+      };
+    });
+}
+
+async function syncAndGetNewUnlocks(userId) {
+  const ids = await syncAchievementsForUser(userId);
+  return newlyUnlockedPublic(ids);
+}
+
 function achievementToPublic(ach, unlockedMap, ctx) {
   const unlocked = unlockedMap.has(ach.id) || (ctx && isAchievementUnlocked(ach, ctx, unlockedMap));
   const progress = ach.type === "goal" && ctx ? achievementProgress(ach, ctx) : null;
@@ -192,7 +212,7 @@ function achievementToPublic(ach, unlockedMap, ctx) {
 }
 
 async function getAchievementsForUser(userId) {
-  await syncAchievementsForUser(userId);
+  const newlyUnlocked = await syncAndGetNewUnlocks(userId);
   const ctx = await buildAchievementContext(userId);
   const unlockedMap = await getUnlockedMap(userId);
   const achievements = ACHIEVEMENT_LIST.map((ach) =>
@@ -203,7 +223,7 @@ async function getAchievementsForUser(userId) {
     [userId]
   );
   const displayed = normalizeDisplayedIds(rows[0]?.displayed_achievements, unlockedMap, ctx);
-  return { achievements, displayed };
+  return { achievements, displayed, newlyUnlocked };
 }
 
 function normalizeDisplayedIds(raw, unlockedMap, ctx) {
@@ -293,6 +313,8 @@ async function getUnlockedCount(userId) {
 
 module.exports = {
   syncAchievementsForUser,
+  syncAndGetNewUnlocks,
+  newlyUnlockedPublic,
   getAchievementsForUser,
   getDisplayedAchievementsPublic,
   setDisplayedAchievements,

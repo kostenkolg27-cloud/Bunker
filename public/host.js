@@ -73,6 +73,7 @@ let pendingScenarioSelection = null;
 let pendingSelectionUntil = 0;
 const backstoriesById = {};
 let hostAccess = { premium: false, dev: false, loggedIn: false };
+let lastHostPhase = null;
 const communityBackstoriesById = {};
 const catalogCardPoolsById = {};
 
@@ -603,6 +604,10 @@ function applyState(state) {
   const inPlaying = state.phase === "playing";
   const inVoting = state.phase === "voting";
   const inEnded = state.phase === "ended";
+  if (inEnded && lastHostPhase !== "ended" && window.BunkerAuth?.checkAchievementUnlocks) {
+    BunkerAuth.checkAchievementUnlocks().catch(() => {});
+  }
+  lastHostPhase = state.phase;
   const inGame = inPlaying || inVoting || inEnded;
   const n = state.players.length;
 

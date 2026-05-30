@@ -80,6 +80,8 @@
 
       href: item.href || "",
 
+      iconUrl: item.iconUrl || "",
+
       action: item.action || null,
 
       at: item.at || Date.now(),
@@ -198,6 +200,13 @@
 
       .map((n) => {
 
+        const medal =
+          n.type === "achievement_unlock" && n.iconUrl
+            ? `<img class="notif-panel__medal" src="${escapeHtml(window.BunkerAuth?.assetUrl?.(n.iconUrl) || n.iconUrl)}" alt="">`
+            : "";
+
+        const linkLabel = n.type === "achievement_unlock" ? "Открыть достижения" : "Открыть";
+
         const actions =
 
           n.type === "friend_request" && n.action
@@ -212,21 +221,34 @@
 
             : n.href
 
-              ? `<a href="${n.href}" class="btn btn--small btn--amber">Открыть</a>`
+              ? `<a href="${n.href}" class="btn btn--small btn--amber">${linkLabel}</a>`
 
               : "";
 
+        const itemClass =
+          n.type === "achievement_unlock" ? " notif-panel__item--achievement" : "";
+
         return `
 
-        <article class="notif-panel__item ${n.read ? "" : "notif-panel__item--unread"}" data-notif-id="${n.id}">
+        <article class="notif-panel__item${itemClass} ${n.read ? "" : "notif-panel__item--unread"}" data-notif-id="${n.id}">
 
-          <p class="notif-panel__title">${escapeHtml(n.title)}</p>
+          <div class="notif-panel__row">
 
-          ${n.body ? `<p class="notif-panel__body">${escapeHtml(n.body)}</p>` : ""}
+            ${medal}
 
-          <time class="notif-panel__time">${formatTime(n.at)}</time>
+            <div class="notif-panel__content">
 
-          ${actions}
+              <p class="notif-panel__title">${escapeHtml(n.title)}</p>
+
+              ${n.body ? `<p class="notif-panel__body">${escapeHtml(n.body)}</p>` : ""}
+
+              <time class="notif-panel__time">${formatTime(n.at)}</time>
+
+              ${actions}
+
+            </div>
+
+          </div>
 
         </article>`;
 

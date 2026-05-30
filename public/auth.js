@@ -145,6 +145,9 @@
     if (!getToken()) return null;
     try {
       const data = await api("/api/auth/me");
+      if (data.newlyUnlocked?.length) {
+        window.BunkerAchievementUnlocks?.process(data.newlyUnlocked);
+      }
       return data.user;
     } catch (err) {
       if (err?.status === 401 || err?.status === 403) {
@@ -416,6 +419,14 @@
     return api("/api/achievements");
   }
 
+  async function checkAchievementUnlocks() {
+    const data = await api("/api/achievements/unlocks");
+    if (data.newlyUnlocked?.length) {
+      window.BunkerAchievementUnlocks?.process(data.newlyUnlocked);
+    }
+    return data.newlyUnlocked || [];
+  }
+
   async function setDisplayedAchievements(displayed) {
     return api("/api/auth/achievements/display", {
       method: "PATCH",
@@ -477,6 +488,7 @@
     uploadNewsMedia,
     newsMediaUrl,
     getAchievements,
+    checkAchievementUnlocks,
     setDisplayedAchievements,
   };
 })();

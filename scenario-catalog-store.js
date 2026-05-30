@@ -475,6 +475,8 @@ async function rejectScenario(reviewerId, id, note) {
      WHERE id = $1`,
     [id, reviewerId, reviewNote]
   );
+  const { syncAchievementsForUser } = require("./achievement-store");
+  syncAchievementsForUser(reviewerId).catch(() => {});
   return { ok: true, entry: await getEntryById(id) };
 }
 
