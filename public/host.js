@@ -318,6 +318,7 @@ function communityScenarioCardHtml(b) {
       <span class="scenario-card__label">
         <span class="scenario-card__label-title">${escapeHtml(b.title)}</span>
         ${communityAuthorHtml(b)}
+        ${BunkerScenarioCatalogUi?.socialButtonsHtml?.(b.id) || ""}
         ${meta}
       </span>
     </button>`;
@@ -333,6 +334,7 @@ function bindScenarioCards(root) {
       }
     });
   });
+  BunkerScenarioCatalogUi?.bindScenarioSocial?.(root);
 }
 
 function setScenarioTab(tab) {

@@ -5728,3 +5728,151 @@ body.mobile-compact-ui .mobile-dock__btn--play {
     height: 48px;
   }
 }
+
+.user-status--looking_for_game {
+  color: var(--amber);
+}
+
+.leaderboard-controls__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1rem;
+  align-items: flex-end;
+}
+
+.leaderboard-controls__row label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.85rem;
+}
+
+.leaderboard-my-rank {
+  margin-top: 0.75rem;
+  color: var(--amber);
+  font-family: var(--font-mono);
+}
+
+.leaderboard-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.leaderboard-list__item {
+  display: grid;
+  grid-template-columns: 2.5rem 2.5rem 1fr auto;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.leaderboard-list__rank {
+  font-family: var(--font-mono);
+  color: var(--text-dim);
+}
+
+.leaderboard-list__avatar {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.leaderboard-list__score {
+  font-family: var(--font-mono);
+  color: var(--green);
+}
+
+.activity-feed {
+  list-style: none;
+  padding: 0;
+  margin: 0.75rem 0 0;
+}
+
+.activity-feed__item {
+  padding: 0.5rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.activity-feed__time {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--text-dim);
+}
+
+.friends-lfg__row,
+.friends-groups__form {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.friends-groups__list {
+  list-style: none;
+  padding: 0;
+  margin: 0.75rem 0 0;
+}
+
+.friends-groups__item {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.scenario-card__social {
+  display: flex;
+  gap: 0.25rem;
+  margin-top: 0.25rem;
+}
+
+.scenario-card__social-btn {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+  padding: 0.1rem 0.35rem;
+  cursor: pointer;
+  color: inherit;
+}
+
+.scenario-card__social-btn--on {
+  color: #f87171;
+  border-color: #f87171;
+}
+
+.scenario-comments-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1200;
+  padding: 1rem;
+}
+
+.scenario-comments-modal.hidden {
+  display: none;
+}
+
+.scenario-comments-modal__card {
+  width: min(480px, 100%);
+  max-height: 80vh;
+  overflow: auto;
+}
+
+.scenario-comments-list {
+  list-style: none;
+  padding: 0;
+  margin: 0.75rem 0;
+}
+
+.scenario-comment-form textarea {
+  width: 100%;
+  margin-bottom: 0.5rem;
+}
